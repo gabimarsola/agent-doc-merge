@@ -1,0 +1,21 @@
+name: Generate merge documentation
+description: Generate a markdown merge note based on git changes
+inputs:
+  before:
+    description: Git ref (SHA/branch) before the merge
+    required: true
+  after:
+    description: Git ref (SHA/branch) after the merge
+    required: true
+  repository:
+    description: Repository name to namespace the output directory (e.g. owner/repo)
+    required: false
+    default: ""
+  output_dir:
+    description: Output directory where the markdown file will be written
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: python3 "${{ github.action_path }}/../../../scripts/generate_merge_doc.py" --before "${{ inputs.before }}" --after "${{ inputs.after }}" --repository "${{ inputs.repository }}" --output-dir "${{ inputs.output_dir }}"

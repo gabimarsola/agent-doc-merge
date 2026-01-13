@@ -19,6 +19,10 @@ on:
         description: Repository name (owner/repo)
         required: true
         type: string
+    secrets:
+      DOC_MERGE_PAT:
+        description: Personal Access Token with write access to agent-doc-merge
+        required: true
 
 permissions:
   contents: write
@@ -60,6 +64,7 @@ jobs:
           repository: gabimarsola/agent-doc-merge
           fetch-depth: 0
           path: agent-doc-merge
+          token: ${{ github.event_name == 'workflow_call' && secrets.DOC_MERGE_PAT || github.token }}
 
       - uses: actions/setup-python@v5
         with:

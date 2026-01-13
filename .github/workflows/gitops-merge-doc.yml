@@ -32,37 +32,51 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Resolve refs
+      - name: Resolve refs and repo
         id: refs
         run: |
           if [ "${{ github.event_name }}" = "workflow_call" ]; then
             echo "before=${{ inputs.before }}" >> "$GITHUB_OUTPUT"
             echo "after=${{ inputs.after }}" >> "$GITHUB_OUTPUT"
             echo "repository=${{ inputs.repository }}" >> "$GITHUB_OUTPUT"
+            echo "is_external=true" >> "$GITHUB_OUTPUT"
           else
             echo "before=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
             echo "after=${{ github.sha }}" >> "$GITHUB_OUTPUT"
             echo "repository=${{ github.repository }}" >> "$GITHUB_OUTPUT"
+            echo "is_external=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Checkout source repository (for analysis)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.refs.outputs.repository }}
+          fetch-depth: 0
+          path: source-repo
+
+      - name: Checkout agent-doc-merge (for script and output)
+        uses: actions/checkout@v4
+        with:
+          repository: gabimarsola/agent-doc-merge
+          fetch-depth: 0
+          path: agent-doc-merge
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Generate merge documentation
         run: |
-          python3 scripts/generate_merge_doc.py \
+          cd source-repo
+          python3 ../agent-doc-merge/scripts/generate_merge_doc.py \
             --before "${{ steps.refs.outputs.before }}" \
             --after "${{ steps.refs.outputs.after }}" \
             --repository "${{ steps.refs.outputs.repository }}" \
-            --output-dir "docs"
+            --output-dir "../agent-doc-merge/docs"
 
       - name: Commit documentation (GitOps)
         run: |
+          cd agent-doc-merge
           if git status --porcelain | grep -q '^'; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
